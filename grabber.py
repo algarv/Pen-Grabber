@@ -8,9 +8,11 @@ import time
 from matplotlib import pyplot as plt
 
 robot = InterbotixManipulatorXS("px100", "arm", "gripper")
+robot.arm.go_to_home_pose()
 
 color = [135,0,75]
 
+pos = -np.pi/2
 
 ## Camera set-up ##
 
@@ -174,14 +176,11 @@ while True:
             theta = math.atan(coordinates[0]/coordinates[2])
             print(theta)
 
-
-            robot.arm.go_to_home_pose()
             robot.gripper.open()
-            robot.arm.set_single_joint_position("waist",theta-np.pi/2)
+            robot.arm.set_single_joint_position("waist",theta+pos)
             #robot.arm.set_ee_cartesian_trajectory(x = coordinates[0], z = coordinates[1])
             robot.gripper.close()
-            time.sleep(1)
-            robot.arm.go_to_sleep_pose()
+            pos = theta + pos
     except:
         print('ROI Empty')
         
