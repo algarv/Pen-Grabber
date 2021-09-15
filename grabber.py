@@ -1,10 +1,13 @@
-#from interbotix_xs_modules.arm import InterbotixManipulatorXS
+from interbotix_xs_modules.arm import InterbotixManipulatorXS
 import pyrealsense2 as rs
 import numpy as np
 import cv2 as cv
+import math
 import matplotlib
+import time
 from matplotlib import pyplot as plt
-#robot = InterbotixManipulatorXS("px100", "arm", "gripper")
+
+robot = InterbotixManipulatorXS("px100", "arm", "gripper")
 
 color = [135,0,75]
 
@@ -125,7 +128,7 @@ while True:
                 purple_pixels_x.append(r)
                 purple_pixels_y.append(c)
                 purple_pixels.append((r,c))
-                print('Purple Identified!')
+                #print('Purple Identified!')
 
     ##binary = np.zeros((img.shape[0],img.shape[1]))
     ##for r in range(binary.shape[0]):
@@ -141,43 +144,56 @@ while True:
     try: 
         roi= [(min(purple_pixels_x),min(purple_pixels_y)),(min(purple_pixels_x),max(purple_pixels_y)),(max(purple_pixels_x),min(purple_pixels_y)),(max(purple_pixels_x),max(purple_pixels_y))]
         print(roi)
-        break
-        for r in range(img.shape[0]):
-            for c in range(img.shape[1]):
-                if (r == min(purple_pixels_x) or r == max(purple_pixels_x)):
-                    if (c > min(purple_pixels_y) and c < max(purple_pixels_y)):
-                        for i in range(-5,5):
-                            image_withroi[r+i][c+1] = [0,0,0]
-                elif (c == min(purple_pixels_y) or c == max(purple_pixels_y)):
-                    if (r > min(purple_pixels_x) and r < max(purple_pixels_x)):
-                        for i in range(-5,5):
-                            image_withroi[r+i][c+i] = [0,0,0]
+##        for r in range(img.shape[0]):
+##            for c in range(img.shape[1]):
+##                if (r == min(purple_pixels_x) or r == max(purple_pixels_x)):
+##                    if (c > min(purple_pixels_y) and c < max(purple_pixels_y)):
+##                        for i in range(-2,2):
+##                            image_withroi[r+i][c+1] = [0,0,0]
+##                elif (c == min(purple_pixels_y) or c == max(purple_pixels_y)):
+##                    if (r > min(purple_pixels_x) and r < max(purple_pixels_x)):
+##                        for i in range(-2,2):
+##                            image_withroi[r+i][c+i] = [0,0,0]
+        center_x = min(purple_pixels_x) + ((max(purple_pixels_x)-min(purple_pixels_x))/2)
+        center_x = round(center_x)
+        center_y = min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2)
+        center_y = round(center_y)
+        center = [center_x,center_y]
+        print(center)
+
+        depth = depth_image[center_x][center_y] * depth_scale
+        print(depth)
+
+        if depth != 0:
+            cfg = profile.get_stream(rs.stream.color)
+            intr = cfg.as_video_stream_profile().get_intrinsics()
+
+            coordinates = rs.rs2_deproject_pixel_to_point(intr, [center_x,center_y], depth) 
+            print(coordinates)
+
+            theta = math.atan(coordinates[0]/coordinates[2])
+            print(theta)
+
+
+            robot.arm.go_to_home_pose()
+            robot.gripper.open()
+            robot.arm.set_single_joint_position("waist",theta-np.pi/2)
+            #robot.arm.set_ee_cartesian_trajectory(x = coordinates[0], z = coordinates[1])
+            robot.gripper.close()
+            time.sleep(1)
+            robot.arm.go_to_sleep_pose()
     except:
         print('ROI Empty')
-center_x = min(purple_pixels_x) + ((max(purple_pixels_x)-min(purple_pixels_x))/2)
-center_x = round(center_x)
-center_y = min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2)
-center_y = round(center_y)
-center = [center_x,center_y]
-print(center)
-
-depth = depth_image[center_x][center_y] * depth_scale
-print(depth)
-
-cv.imshow("ROI",image_withroi)
-cv.waitKey(0)
-cv.destroyAllWindows()
-
-
-##Move Arm to its starting position##
+        
 
 
 
-##Open the grippers##
+
+#cv.imshow("ROI",image_withroi)
+#cv.waitKey(0)
+#cv.destroyAllWindows()
 
 
-
-##Turn at the waist to face pen##
 
 
 
