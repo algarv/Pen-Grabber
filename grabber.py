@@ -94,61 +94,76 @@ while True:
     color_image = np.asanyarray(color_frame.get_data())
 
     # Remove background - Set pixels further than clipping_distance to grey
-    grey_color = 153
-    depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-    bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-
+    #grey_color = 153
+    #depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
+    #bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
+    
     # Render images:
     #   depth align to color on left
     #   depth on right
-    depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-    images = np.hstack((bg_removed, depth_colormap))
+    #depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+    #images = np.hstack((bg_removed, depth_colormap))
 
-    cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
-    cv2.imshow('Align Example', images)
-    key = cv2.waitKey(1)
+    #cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
+    #cv2.imshow('Align Example', images)
+    #key = cv2.waitKey(1)
 
-        
+    ##Image set-up and display##
+
+    img = color_image
+    #cv.imshow("Logo",img)
+    #cv.waitKey(0)
+    #cv.destroyAllWindows()
+
+    purple_pixels = list()
+    purple_pixels_x = list()
+    purple_pixels_y = list()
+
+    for r in range(img.shape[0]):
+        for c in range(img.shape[1]):
+            if abs(img[r][c][0] - color[0])<50 and abs(img[r][c][1] - color[1])<50 and abs(img[r][c][2]-color[2])<50:
+                purple_pixels_x.append(r)
+                purple_pixels_y.append(c)
+                purple_pixels.append((r,c))
+                print('Purple Identified!')
+
+    ##binary = np.zeros((img.shape[0],img.shape[1]))
+    ##for r in range(binary.shape[0]):
+    ##    for c in range(binary.shape[1]):
+    ##        if (r,c) in purple_pixels:
+    ##            binary[r][c] = 1
+    ##        else:
+    ##            binary[r][c] = 0
 
 
-##Image set-up and display##
+    image_withroi = img
 
-img = cv.imread('Northwestern.png')
-#cv.imshow("Logo",img)
-#cv.waitKey(0)
-#cv.destroyAllWindows()
+    try: 
+        roi= [(min(purple_pixels_x),min(purple_pixels_y)),(min(purple_pixels_x),max(purple_pixels_y)),(max(purple_pixels_x),min(purple_pixels_y)),(max(purple_pixels_x),max(purple_pixels_y))]
+        print(roi)
+        break
+        for r in range(img.shape[0]):
+            for c in range(img.shape[1]):
+                if (r == min(purple_pixels_x) or r == max(purple_pixels_x)):
+                    if (c > min(purple_pixels_y) and c < max(purple_pixels_y)):
+                        for i in range(-5,5):
+                            image_withroi[r+i][c+1] = [0,0,0]
+                elif (c == min(purple_pixels_y) or c == max(purple_pixels_y)):
+                    if (r > min(purple_pixels_x) and r < max(purple_pixels_x)):
+                        for i in range(-5,5):
+                            image_withroi[r+i][c+i] = [0,0,0]
+    except:
+        print('ROI Empty')
+center_x = min(purple_pixels_x) + ((max(purple_pixels_x)-min(purple_pixels_x))/2)
+center_x = round(center_x)
+center_y = min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2)
+center_y = round(center_y)
+center = [center_x,center_y]
+print(center)
 
-purple_pixels = list()
-purple_pixels_x = list()
-purple_pixels_y = list()
+depth = depth_image[center_x][center_y] * depth_scale
+print(depth)
 
-for r in range(img.shape[0]):
-    for c in range(img.shape[1]):
-        if abs(img[r][c][0] - color[0])<10 and abs(img[r][c][1] - color[1])<10 and abs(img[r][c][2]-color[2])<10:
-            purple_pixels_x.append(r)
-            purple_pixels_y.append(c)
-            purple_pixels.append((r,c))
-
-##binary = np.zeros((img.shape[0],img.shape[1]))
-##for r in range(binary.shape[0]):
-##    for c in range(binary.shape[1]):
-##        if (r,c) in purple_pixels:
-##            binary[r][c] = 1
-##        else:
-##            binary[r][c] = 0
-
-roi= [(min(purple_pixels_x),min(purple_pixels_y)),(min(purple_pixels_x),max(purple_pixels_y)),(max(purple_pixels_x),min(purple_pixels_y)),(max(purple_pixels_x),max(purple_pixels_y))]
-
-image_withroi = img
-for r in range(img.shape[0]):
-    for c in range(img.shape[1]):
-        if (r == min(purple_pixels_x) or r == max(purple_pixels_x)):
-            if (c > min(purple_pixels_y) and c < max(purple_pixels_y)):
-                image_withroi[r][c] = [0,0,0]
-        elif (c == min(purple_pixels_y) or c == max(purple_pixels_y)):
-            if (r > min(purple_pixels_x) and r < max(purple_pixels_x)):
-                image_withroi[r][c] = [0,0,0]
-                                                                                           
 cv.imshow("ROI",image_withroi)
 cv.waitKey(0)
 cv.destroyAllWindows()
