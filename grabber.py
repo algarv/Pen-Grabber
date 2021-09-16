@@ -6,29 +6,18 @@ import math
 import matplotlib
 import time
 from matplotlib import pyplot as plt
+import pyrealsense2 as rs
+import numpy as np
+import cv2
 
+theta = -np.pi/2
 robot = InterbotixManipulatorXS("px100", "arm", "gripper")
 robot.arm.go_to_home_pose()
+robot.gripper.open()
+robot.arm.set_single_joint_position("waist",theta)
+
 
 color = [135,0,75]
-
-pos = -np.pi/2
-
-## Camera set-up ##
-
-## License: Apache 2.0. See LICENSE file in root directory.
-## Copyright(c) 2017 Intel Corporation. All Rights Reserved.
-
-#####################################################
-##              Align Depth to Color               ##
-#####################################################
-
-# First import the library
-import pyrealsense2 as rs
-# Import Numpy for easy array manipulation
-import numpy as np
-# Import OpenCV for easy image rendering
-import cv2
 
 # Create a pipeline
 pipeline = rs.pipeline()
@@ -98,27 +87,7 @@ while True:
     depth_image = np.asanyarray(aligned_depth_frame.get_data())
     color_image = np.asanyarray(color_frame.get_data())
 
-    # Remove background - Set pixels further than clipping_distance to grey
-    #grey_color = 153
-    #depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-    #bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-    
-    # Render images:
-    #   depth align to color on left
-    #   depth on right
-    #depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-    #images = np.hstack((bg_removed, depth_colormap))
-
-    #cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
-    #cv2.imshow('Align Example', images)
-    #key = cv2.waitKey(1)
-
-    ##Image set-up and display##
-
     img = color_image
-    #cv.imshow("Logo",img)
-    #cv.waitKey(0)
-    #cv.destroyAllWindows()
 
     purple_pixels = list()
     purple_pixels_x = list()
@@ -140,7 +109,6 @@ while True:
     ##        else:
     ##            binary[r][c] = 0
 
-
     image_withroi = img
 
     try: 
@@ -156,41 +124,45 @@ while True:
 ##                    if (r > min(purple_pixels_x) and r < max(purple_pixels_x)):
 ##                        for i in range(-2,2):
 ##                            image_withroi[r+i][c+i] = [0,0,0]
-        center_x = min(purple_pixels_x) + ((max(purple_pixels_x)-min(purple_pixels_x))/2)
-        center_x = round(center_x)
-        center_y = min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2)
-        center_y = round(center_y)
+        center_x = round(min(purple_pixels_x) + ((max(purple_pixels_x)-min(purple_pixels_x))/2))
+        center_y = round(min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2))
         center = [center_x,center_y]
-        print(center)
 
         depth = depth_image[center_x][center_y] * depth_scale
-        print(depth)
+        print("Depth: ", depth)
 
         if depth != 0:
             cfg = profile.get_stream(rs.stream.color)
             intr = cfg.as_video_stream_profile().get_intrinsics()
 
             coordinates = rs.rs2_deproject_pixel_to_point(intr, [center_x,center_y], depth) 
-            print(coordinates)
+            print("Coordinates: ", coordinates)
 
-            theta = math.atan(coordinates[0]/coordinates[2])
-            print(theta)
+            target_theta = math.atan(coordinates[0]/coordinates[2]) - np.pi/2
+            print("Target theta: ", target_theta)
 
-            robot.gripper.open()
-            robot.arm.set_single_joint_position("waist",theta+pos)
+            print("Theta:", theta)
+            if (abs(theta - target_theta)>.01):
+                robot.arm.set_single_joint_position("waist",theta)
+                if (theta - target_theta)<0:
+                    theta = theta + .03
+                else:
+                    theta = theta - .03
+            else:
+                print("Closing grippers")
+                robot.gripper.close()
+                break
+            
+            #robot.gripper.close()
+            #robot.arm.go_to_home_pose()
             #robot.arm.set_ee_cartesian_trajectory(x = coordinates[0], z = coordinates[1])
-            robot.gripper.close()
-            pos = theta + pos
+            #robot.gripper.close()
+            #pos = theta + pos
     except:
         print('ROI Empty')
         
 
-
-
-
-#cv.imshow("ROI",image_withroi)
-#cv.waitKey(0)
-#cv.destroyAllWindows()
+cv.destroyAllWindows()
 
 
 
