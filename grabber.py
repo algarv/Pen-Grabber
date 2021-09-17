@@ -12,6 +12,7 @@ import cv2
 
 theta = -np.pi/2
 robot = InterbotixManipulatorXS("px100", "arm", "gripper")
+robot.arm.go_to_sleep_pose()
 robot.arm.go_to_home_pose()
 robot.gripper.open()
 robot.arm.set_single_joint_position("waist",theta)
@@ -128,7 +129,12 @@ while True:
         center_y = round(min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2))
         center = [center_x,center_y]
 
-        depth = depth_image[center_x][center_y] * depth_scale
+        depth = list()
+        for i in range(-2,2):
+            for j in range(-2,2):
+                if depth_image[center_x+i][center_y+j] != 0:
+                    depth.append(depth_image[center_x+i][center_y+j] * depth_scale)
+        depth = sum(depth) / len(depth)
         print("Depth: ", depth)
 
         if depth != 0:
@@ -145,23 +151,31 @@ while True:
             if (abs(theta - target_theta)>.01):
                 robot.arm.set_single_joint_position("waist",theta)
                 if (theta - target_theta)<0:
-                    theta = theta + .03
+                    theta = theta + abs(theta-target_theta)/2
                 else:
-                    theta = theta - .03
+                    theta = theta - abs(theta-target_theta)/2
             else:
-                print("Closing grippers")
-                robot.gripper.close()
                 break
-            
-            #robot.gripper.close()
-            #robot.arm.go_to_home_pose()
-            #robot.arm.set_ee_cartesian_trajectory(x = coordinates[0], z = coordinates[1])
-            #robot.gripper.close()
-            #pos = theta + pos
+
     except:
         print('ROI Empty')
-        
 
+target_i = np.pi - math.acos((depth-.23)/.12)
+print(target_i)
+i = 0
+while i<=target_i:
+    robot.arm.set_single_joint_position("shoulder",i)
+    robot.arm.set_single_joint_position("elbow",-1.25*i)
+    i = i+.1
+
+print("Closing grippers")
+robot.gripper.close()
+time.sleep(.5)
+#robot.arm.set_single_joint_position("shoulder",0)
+#robot.arm.set_single_joint_position("elbow",0)
+robot.arm.go_to_home_pose()
+robot.gripper.open()
+robot.arm.go_to_sleep_pose()
 cv.destroyAllWindows()
 
 
