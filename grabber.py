@@ -148,25 +148,41 @@ while True:
             print("Target theta: ", target_theta)
 
             print("Theta:", theta)
-            if (abs(theta - target_theta)>.01):
+            if (abs(theta - target_theta)>.02):
+                theta = target_theta
+##                if (theta - target_theta)<0:
+##                    if abs(theta - target_theta) > .2:
+##                        theta = theta + .2
+##                    else:
+##                        theta = theta + .05
+##                else:
+##                    if abs(theta - target_theta) > .2:
+##                        theta = theta - .2
+##                    else:
+##                        theta = theta - .05
                 robot.arm.set_single_joint_position("waist",theta)
-                if (theta - target_theta)<0:
-                    theta = theta + abs(theta-target_theta)/2
-                else:
-                    theta = theta - abs(theta-target_theta)/2
             else:
+                robot.arm.set_single_joint_position("waist",theta)
                 break
 
     except:
         print('ROI Empty')
 
-target_i = np.pi - math.acos((depth-.23)/.12)
-print(target_i)
+depth = depth - .13
+print("Depth: ",depth)
+
+a = (depth-.23)/.12
+print("A: ", a)
+if a > .9:
+    a = .9
+
+target_i = np.pi/2 - math.acos(a)
+print("Target i: ", target_i)
 i = 0
 while i<=target_i:
     robot.arm.set_single_joint_position("shoulder",i)
     robot.arm.set_single_joint_position("elbow",-1.25*i)
-    i = i+.1
+    i = i+.3
 
 print("Closing grippers")
 robot.gripper.close()
