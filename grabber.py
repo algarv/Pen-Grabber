@@ -145,11 +145,10 @@ while True:
             print("Coordinates: ", coordinates)
 
             target_theta = math.atan(coordinates[0]/coordinates[2]) - np.pi/2
-            print("Target theta: ", target_theta)
-
-            print("Theta:", theta)
-            if (abs(theta - target_theta)>.02):
-                theta = target_theta
+            print("Target Theta: ", target_theta)
+            print("Theta: ", theta)
+            
+            if (abs(theta - target_theta)>.01):
 ##                if (theta - target_theta)<0:
 ##                    if abs(theta - target_theta) > .2:
 ##                        theta = theta + .2
@@ -160,7 +159,10 @@ while True:
 ##                        theta = theta - .2
 ##                    else:
 ##                        theta = theta - .05
+
+                theta = target_theta
                 robot.arm.set_single_joint_position("waist",theta)
+
             else:
                 robot.arm.set_single_joint_position("waist",theta)
                 break
@@ -184,11 +186,21 @@ while i<=target_i:
     robot.arm.set_single_joint_position("elbow",-1.25*i)
     i = i+.3
 
+robot.arm.set_single_joint_position("shoulder",target_i)
+#robot.arm.set_single_joint_position("elbow",-1.25*target_i)
+
+y = coordinates[1] + .14
+dy = y - .12*math.sin(np.pi/2 - target_i)
+t = math.atan((dy/.23))
+print(t)
+
+robot.arm.set_single_joint_position("elbow",-1*t)
+
+
 print("Closing grippers")
 robot.gripper.close()
 time.sleep(.5)
-#robot.arm.set_single_joint_position("shoulder",0)
-#robot.arm.set_single_joint_position("elbow",0)
+
 robot.arm.go_to_home_pose()
 robot.gripper.open()
 robot.arm.go_to_sleep_pose()
