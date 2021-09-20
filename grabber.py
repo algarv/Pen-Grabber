@@ -189,13 +189,12 @@ while i<=target_i:
 robot.arm.set_single_joint_position("shoulder",target_i)
 #robot.arm.set_single_joint_position("elbow",-1.25*target_i)
 
-y = coordinates[1] + .14
+y = coordinates[1]
 dy = y - .12*math.sin(np.pi/2 - target_i)
 t = math.atan((dy/.23))
 print(t)
 
 robot.arm.set_single_joint_position("elbow",-1*t)
-
 
 print("Closing grippers")
 robot.gripper.close()
