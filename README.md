@@ -1,3 +1,7 @@
 <h1>Pen Grabber Challenge</h1>
 
-![Block Diagram](Block_Diagram.jpg)
+<p align="center"> 
+
+![Block Diagram](Block_Diagram.jpg) 
+
+</p>
