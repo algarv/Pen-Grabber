@@ -3,22 +3,19 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2 as cv
 import math
-import matplotlib
 import time
 from matplotlib import pyplot as plt
 import pyrealsense2 as rs
 import numpy as np
-import cv2
 
-theta = -np.pi/2
 robot = InterbotixManipulatorXS("px100", "arm", "gripper")
 robot.arm.go_to_sleep_pose()
 robot.arm.go_to_home_pose()
 robot.gripper.open()
-robot.arm.set_single_joint_position("waist",theta)
+robot.arm.set_single_joint_position("waist",-np.pi/2)
 
 
-color = [135,0,75]
+color = [135,0,75] #RGB for purple detection
 
 # Create a pipeline
 pipeline = rs.pipeline()
@@ -57,18 +54,13 @@ depth_sensor = profile.get_device().first_depth_sensor()
 depth_scale = depth_sensor.get_depth_scale()
 print("Depth Scale is: " , depth_scale)
 
-# We will be removing the background of objects more than
-#  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 1 #1 meter
-clipping_distance = clipping_distance_in_meters / depth_scale
-
 # Create an align object
 # rs.align allows us to perform alignment of depth frames to others frames
 # The "align_to" is the stream type to which we plan to align depth frames.
 align_to = rs.stream.color
 align = rs.align(align_to)
 
-# Streaming loop
+
 while True:
     # Get frameset of color and depth
     frames = pipeline.wait_for_frames()
@@ -115,16 +107,7 @@ while True:
     try: 
         roi= [(min(purple_pixels_x),min(purple_pixels_y)),(min(purple_pixels_x),max(purple_pixels_y)),(max(purple_pixels_x),min(purple_pixels_y)),(max(purple_pixels_x),max(purple_pixels_y))]
         print(roi)
-##        for r in range(img.shape[0]):
-##            for c in range(img.shape[1]):
-##                if (r == min(purple_pixels_x) or r == max(purple_pixels_x)):
-##                    if (c > min(purple_pixels_y) and c < max(purple_pixels_y)):
-##                        for i in range(-2,2):
-##                            image_withroi[r+i][c+1] = [0,0,0]
-##                elif (c == min(purple_pixels_y) or c == max(purple_pixels_y)):
-##                    if (r > min(purple_pixels_x) and r < max(purple_pixels_x)):
-##                        for i in range(-2,2):
-##                            image_withroi[r+i][c+i] = [0,0,0]
+
         center_x = round(min(purple_pixels_x) + ((max(purple_pixels_x)-min(purple_pixels_x))/2))
         center_y = round(min(purple_pixels_y) + ((max(purple_pixels_y)-min(purple_pixels_y))/2))
         center = [center_x,center_y]
@@ -148,7 +131,9 @@ while True:
             print("Target Theta: ", target_theta)
             print("Theta: ", theta)
             
+            #Maintain a joint1 joint angle within .01 radians of the identified target
             if (abs(theta - target_theta)>.01):
+                #Set theta incrementally --> higher accuracy, very slow
 ##                if (theta - target_theta)<0:
 ##                    if abs(theta - target_theta) > .2:
 ##                        theta = theta + .2
@@ -160,6 +145,7 @@ while True:
 ##                    else:
 ##                        theta = theta - .05
 
+                #Set theta absolutely --> not robust to pen movement, but much faster (and therefor less pen movement anyway)
                 theta = target_theta
                 robot.arm.set_single_joint_position("waist",theta)
 
@@ -170,7 +156,7 @@ while True:
     except:
         print('ROI Empty')
 
-depth = depth - .13
+depth = depth - .13 #13 cm offset between camera and arm
 print("Depth: ",depth)
 
 a = (depth-.23)/.12
@@ -184,7 +170,7 @@ i = 0
 while i<=target_i:
     robot.arm.set_single_joint_position("shoulder",i)
     robot.arm.set_single_joint_position("elbow",-1.25*i)
-    i = i+.3
+    i += .3
 
 robot.arm.set_single_joint_position("shoulder",target_i)
 #robot.arm.set_single_joint_position("elbow",-1.25*target_i)
@@ -204,20 +190,3 @@ robot.arm.go_to_home_pose()
 robot.gripper.open()
 robot.arm.go_to_sleep_pose()
 cv.destroyAllWindows()
-
-
-
-
-
-##Adjust the height to level the grippers##
-
-
-
-##Move forward to meet pen##
-
-
-
-##Close the grippers##
-
-
-
